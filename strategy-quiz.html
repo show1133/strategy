@@ -1,0 +1,803 @@
+<title>策略管理考前練習</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 單欄試卷流 — 出卷設定 → 統計面板 → 題卡序列 → 固定底部送出列；送出採頁內兩段式確認對話框 */
+:root{
+  --bg:#EDF1F4; --surface:#FFFFFF; --surface-2:#F5F8FA;
+  --ink:#152029; --ink-soft:#33465A; --muted:#64788A; --line:#D3DDE5; --line-soft:#E4EBF1;
+  --accent:#1B4F6B; --accent-weak:#E0ECF3; --accent-line:#A8C8DA;
+  --ok:#0D7355; --ok-weak:#DDF0E8; --no:#A8382C; --no-weak:#F7E3E0;
+  --warn:#8A6410; --warn-weak:#FAEFD6;
+  --shadow:0 1px 2px rgba(21,32,41,.06), 0 8px 24px -12px rgba(21,32,41,.18);
+  --shadow-lg:0 24px 60px -18px rgba(21,32,41,.45);
+  --serif:"Noto Serif TC","Songti TC",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161C; --surface:#18212A; --surface-2:#1D2832;
+    --ink:#E7EEF4; --ink-soft:#C3D1DC; --muted:#93A5B3; --line:#2B3843; --line-soft:#232F3A;
+    --accent:#74B9D8; --accent-weak:#1A2B36; --accent-line:#2F4B5C;
+    --ok:#4FC79C; --ok-weak:#15302A; --no:#EE9287; --no-weak:#341F1C;
+    --warn:#E0B65C; --warn-weak:#2F2716;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+    --shadow-lg:0 24px 60px -18px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161C; --surface:#18212A; --surface-2:#1D2832;
+  --ink:#E7EEF4; --ink-soft:#C3D1DC; --muted:#93A5B3; --line:#2B3843; --line-soft:#232F3A;
+  --accent:#74B9D8; --accent-weak:#1A2B36; --accent-line:#2F4B5C;
+  --ok:#4FC79C; --ok-weak:#15302A; --no:#EE9287; --no-weak:#341F1C;
+  --warn:#E0B65C; --warn-weak:#2F2716;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+  --shadow-lg:0 24px 60px -18px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:860px;margin:0 auto;padding-inline:18px;padding-block:0 120px}
+.wrap.nopaper{padding-block-end:56px}
+
+header.mast{padding-block:34px 20px;border-bottom:1px solid var(--line)}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+h1{font-family:var(--serif);font-weight:900;font-size:clamp(27px,6.2vw,40px);line-height:1.25;margin:0 0 10px;text-wrap:balance;letter-spacing:.01em}
+.lede{margin:0;color:var(--ink-soft);font-size:14.5px;max-width:62ch}
+.srcline{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:6px 14px}
+.srcline span{font-family:var(--mono);font-size:11.5px;letter-spacing:.02em;color:var(--muted)}
+
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 13px;
+  font-size:13px;font-weight:500;color:var(--ink-soft);transition:background .14s,border-color .14s,color .14s}
+.chip:hover:not(:disabled){border-color:var(--accent-line)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+.chip:disabled{opacity:.38;cursor:not-allowed}
+.chip .n{font-family:var(--mono);font-size:11px;opacity:.72;margin-left:5px}
+.chip.ghost{border-style:dashed}
+.btn{border-radius:10px;padding:9px 22px;font-size:14.5px;font-weight:700;border:1.5px solid transparent}
+.btn.primary{background:var(--accent);color:var(--surface)}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn.quiet{border-color:var(--line);background:var(--surface-2);color:var(--ink-soft)}
+.btn.quiet:hover{border-color:var(--accent-line)}
+.btn.danger{border-color:var(--no);color:var(--no);background:var(--no-weak)}
+.btn.big{width:100%;padding:13px 22px;font-size:16px;margin-top:4px}
+
+/* ---------- 出卷設定 ---------- */
+.setup{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:20px}
+.setup h2{font-family:var(--serif);font-size:21px;font-weight:700;margin:0 0 4px;letter-spacing:.01em}
+.setup .intro{margin:0 0 18px;font-size:13.5px;color:var(--muted)}
+.field{margin-bottom:16px}
+.flabel{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.plan{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px;
+  font-size:13px;color:var(--ink-soft);line-height:1.8;margin:0 0 4px}
+.plan .hd{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px}
+.plan .mix{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.plan .cap{color:var(--warn);display:block;margin-top:4px}
+
+/* ---------- 工具列 ---------- */
+.toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+  background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);margin-inline:-18px;padding:10px 18px;margin-top:4px}
+.toolrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.papertag{font-size:12.5px;color:var(--ink-soft);margin-right:auto}
+.papertag b{font-family:var(--mono);font-weight:600;color:var(--accent)}
+
+/* ---------- 統計面板 ---------- */
+.dash{margin-top:20px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.dash-top{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:18px 20px}
+.ring{width:112px;height:112px;flex:none}
+.ring text.big{font-family:var(--serif);font-weight:900;font-size:25px;fill:var(--ink)}
+.ring text.sub{font-family:var(--mono);font-size:8.5px;fill:var(--muted);letter-spacing:.1em}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+.tile{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:9px 11px}
+.tile .v{font-family:var(--mono);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.2;letter-spacing:-.01em}
+.tile .v small{font-size:13px;color:var(--muted);font-weight:500}
+.tile .k{font-size:11.5px;color:var(--muted);margin-top:1px}
+.tile.ok .v{color:var(--ok)} .tile.no .v{color:var(--no)} .tile.wa .v{color:var(--warn)}
+.bars{border-top:1px solid var(--line-soft);padding:14px 20px 18px;display:grid;gap:11px}
+.bars h2{margin:0 0 2px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.brow{display:grid;grid-template-columns:116px 1fr 56px;gap:11px;align-items:center;font-size:12.5px}
+.brow .nm{color:var(--ink-soft);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{height:9px;border-radius:999px;background:var(--line-soft);overflow:hidden;display:flex;min-width:0}
+.track i{display:block;height:100%}
+.track i.c{background:var(--ok)} .track i.w{background:var(--no)} .track i.d{background:var(--accent)}
+.brow .pc{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:3px}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.grade{margin:0;padding:11px 20px;border-top:1px solid var(--line-soft);background:var(--surface-2);font-size:13.5px;color:var(--ink-soft)}
+.grade strong{font-family:var(--serif);font-size:16px;color:var(--ink)}
+
+/* ---------- 題卡 ---------- */
+.list{margin-top:24px;display:grid;gap:13px}
+.sechead{margin:16px 0 2px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sechead h2{font-family:var(--serif);font-size:19px;font-weight:700;margin:0;letter-spacing:.01em}
+.sechead .dt{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 17px 14px;box-shadow:var(--shadow);scroll-margin-top:130px}
+.q.marked{border-color:var(--accent-line)}
+.q.g-right{border-color:color-mix(in srgb,var(--ok) 42%,var(--line))}
+.q.g-wrong{border-color:color-mix(in srgb,var(--no) 45%,var(--line))}
+.q.g-blank{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.qhead{display:flex;gap:9px;align-items:center;margin-bottom:7px;flex-wrap:wrap}
+.qno{font-family:var(--mono);font-weight:600;font-size:12px;color:var(--accent);background:var(--accent-weak);
+  border:1px solid var(--accent-line);border-radius:6px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.qtag{font-size:11.5px;color:var(--muted)}
+.bankno{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.verdict{margin-left:auto;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px}
+.verdict.right{color:var(--ok);background:var(--ok-weak)}
+.verdict.wrong{color:var(--no);background:var(--no-weak)}
+.verdict.blank{color:var(--warn);background:var(--warn-weak)}
+.verdict.done{color:var(--accent);background:var(--accent-weak)}
+.qtext{margin:0 0 12px;font-size:15.5px;color:var(--ink);line-height:1.85}
+.picks{display:flex;gap:9px;flex-wrap:wrap}
+.pick{border:1.5px solid var(--line);background:var(--surface-2);border-radius:9px;padding:6px 18px;
+  font-size:14px;font-weight:700;min-width:84px;text-align:center;transition:background .14s,border-color .14s,color .14s}
+.pick:hover:not(:disabled){border-color:var(--accent-line)}
+.pick:disabled{cursor:default}
+.pick[data-state="sel"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.pick[data-state="chosen-right"]{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.pick[data-state="chosen-wrong"]{background:var(--no);border-color:var(--no);color:var(--surface)}
+.pick[data-state="key"]{border-color:var(--ok);color:var(--ok);background:var(--ok-weak)}
+.pick[data-state="dim"]{opacity:.4}
+.exp{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink-soft);line-height:1.82}
+.exp .key{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px}
+.empty{padding:40px 18px;text-align:center;color:var(--muted);font-size:14px}
+
+/* ---------- 固定底部送出列 ---------- */
+.subbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);
+  box-shadow:0 -6px 24px -14px rgba(21,32,41,.4);padding:11px 18px;padding-bottom:calc(11px + env(safe-area-inset-bottom,0px))}
+.subinner{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.meter{flex:1;min-width:150px}
+.meter .t{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px;gap:10px}
+.meter .t b{font-family:var(--mono);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.mtrack{height:7px;border-radius:999px;background:var(--line-soft);overflow:hidden}
+.mtrack i{display:block;height:100%;background:var(--accent);transition:width .25s}
+
+/* ---------- 兩段式確認對話框 ---------- */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(10,18,24,.56);display:flex;align-items:center;
+  justify-content:center;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);
+  width:min(480px,100%);max-height:84vh;display:flex;flex-direction:column;overflow:hidden}
+.m-head{padding:18px 20px 12px;border-bottom:1px solid var(--line-soft)}
+.m-step{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+.m-head h2{font-family:var(--serif);font-size:20px;font-weight:700;margin:0;letter-spacing:.01em}
+.m-body{padding:16px 20px;overflow-y:auto;font-size:14px;color:var(--ink-soft);line-height:1.8}
+.m-body p{margin:0}
+.mstats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.mstat{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px}
+.mstat .v{font-family:var(--mono);font-weight:600;font-size:23px;font-variant-numeric:tabular-nums;line-height:1.15}
+.mstat .k{font-size:11.5px;color:var(--muted)}
+.mstat.done .v{color:var(--accent)} .mstat.blank .v{color:var(--warn)}
+.blanklist{border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--ink-soft);max-height:160px;overflow-y:auto;
+  background:var(--warn-weak);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+.blanklist.good{background:var(--ok-weak);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+.blanklist .key{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);display:block;margin-bottom:4px}
+.blanklist.good .key{color:var(--ok)}
+.blanklist .nos{font-family:var(--mono);font-size:12.5px;line-height:1.9;word-break:break-word}
+.m-warn{background:var(--no-weak);border:1px solid color-mix(in srgb,var(--no) 32%,transparent);border-radius:10px;padding:12px 13px;color:var(--ink-soft)}
+.m-warn b{color:var(--no)}
+.m-foot{padding:12px 20px 16px;border-top:1px solid var(--line-soft);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.m-foot .btn{padding:8px 18px;font-size:14px}
+
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.8}
+
+@media (max-width:620px){
+  .toolbar{position:static}
+  .dash-top{grid-template-columns:1fr;gap:14px;justify-items:center}
+  .tiles{width:100%}
+  .tile{padding:8px 9px} .tile .v{font-size:18px}
+  .brow{grid-template-columns:84px 1fr 48px;gap:8px;font-size:12px}
+  .ring{width:100px;height:100px}
+  .papertag{margin-right:0;width:100%}
+  .btn{padding:9px 18px}
+}
+@media (max-width:400px){
+  .meter{min-width:100%;order:-1}
+  .subinner .btn{flex:1}
+}
+@media (max-width:360px){
+  .tiles{grid-template-columns:1fr 1fr}
+  .pick{flex:1;min-width:0;padding-inline:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap nopaper" id="wrap">
+  <header class="mast">
+    <p class="kicker">EMBA 經管組 · 策略管理 · 考前練習</p>
+    <h1>策略管理是非測驗產生器</h1>
+    <p class="lede">題庫共 100 題是非題，依湯明哲教授四次授課重點整理而成，涵蓋 PVC／ROSE、策略終局、五力與價值鏈、核心競爭力、合作與競爭策略。自選題數隨機出卷，每題 1 分；作答過程不顯示對錯，按「送出試卷」並完成兩次確認後才計分並展開詳解。</p>
+    <p class="srcline">
+      <span>115/08/29 大策略，小策略</span>
+      <span>115/09/05 產業分析</span>
+      <span>115/09/12 核心競爭力</span>
+      <span>115/10/04 競爭策略</span>
+    </p>
+  </header>
+
+  <section class="setup" id="setup">
+    <h2>產生測驗卷</h2>
+    <p class="intro">選好題數與範圍，系統會從題庫隨機抽題；選「全部單元」時會依各單元題數比例分配。</p>
+    <div class="field">
+      <span class="flabel">題數</span>
+      <div class="opts" id="sizeRow"></div>
+    </div>
+    <div class="field">
+      <span class="flabel">出題範圍</span>
+      <div class="opts" id="scopeRow"></div>
+    </div>
+    <p class="plan" id="plan"></p>
+    <button class="btn primary big" id="btnStart" type="button">開始測驗</button>
+  </section>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <div class="toolrow">
+      <span class="papertag" id="paperTag"></span>
+      <span class="lbl">檢視</span>
+      <button class="chip" id="vAll" aria-pressed="true">全部</button>
+      <button class="chip" id="vBlank" aria-pressed="false">只看未作答</button>
+      <button class="chip" id="vWrong" aria-pressed="false" hidden>只看答錯</button>
+      <button class="chip ghost" id="btnNewPaper">重新出卷</button>
+    </div>
+  </div>
+
+  <section class="dash" id="dash" aria-label="作答統計" hidden>
+    <div class="dash-top">
+      <svg class="ring" viewBox="0 0 120 120" role="img" aria-labelledby="ringLbl">
+        <title id="ringLbl">作答進度／成績</title>
+        <circle cx="60" cy="60" r="48" fill="none" stroke="var(--line-soft)" stroke-width="13"/>
+        <circle id="ringArc" cx="60" cy="60" r="48" fill="none" stroke="var(--accent)" stroke-width="13"
+          stroke-linecap="round" stroke-dasharray="0 302" transform="rotate(-90 60 60)"/>
+        <text id="ringBig" class="big" x="60" y="59" text-anchor="middle" dominant-baseline="middle">0%</text>
+        <text id="ringSub" class="sub" x="60" y="78" text-anchor="middle">作答進度</text>
+      </svg>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="bars">
+      <h2 id="barsTitle">各單元作答進度</h2>
+      <div id="barRows"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <p class="grade" id="gradeLine" hidden></p>
+  </section>
+
+  <main class="list" id="list"></main>
+
+  <footer>
+    作答紀錄只存在您目前這台裝置的瀏覽器中，不會上傳，也不會被他人看到；關掉頁面再打開，未送出的試卷會自動還原。<br>
+    內容整理自課程筆記，數據與案例以課堂講述為準；考試請以教授最終說明為依據。
+  </footer>
+</div>
+
+<div class="subbar" id="subbar" hidden>
+  <div class="subinner">
+    <div class="meter">
+      <div class="t"><span id="meterLabel">作答進度</span><span><b id="meterNum">0</b> / <span id="meterDen">0</span></span></div>
+      <div class="mtrack"><i id="meterFill" style="width:0%"></i></div>
+    </div>
+    <button class="btn primary" id="btnSubmit" type="button">送出試卷</button>
+    <button class="btn quiet" id="btnTop" type="button" hidden>回到頂端</button>
+  </div>
+</div>
+
+<div id="modalHost"></div>
+
+<script>
+// unit: 1=大策略與小策略 2=產業分析 3=核心競爭力與競爭優勢 4=競爭策略
+// a: true = 敘述正確(O)；false = 敘述錯誤(X)
+const QUESTIONS = [
+/* ===== 單元一：策略管理 — 大策略，小策略 (115/08/29) 24題 ===== */
+{u:1,a:true ,q:"PVC 模型中的 V（Value）指顧客認知上的價值，也就是顧客最高願意支付的價錢。",e:"正確。PVC 三要素為 V＝顧客認知價值（顧客願付上限）、P＝產品價格、C＝成本。V 是顧客心中的「天花板價」，不是公司的定價。"},
+{u:1,a:false,q:"策略的目的在於縮小 V 與 C 的距離，同時縮小 P 與 C 的距離，以增加利潤。",e:"錯誤。方向相反。策略在創造競爭優勢，就是要「拉大」V 與 C 的距離（創造總價值），同時「拉大」P 與 C 的距離（把價值轉成利潤）。V−C 是可分配的總價值，P−C 才是企業的利潤。"},
+{u:1,a:false,q:"「和尚廟賣梳子」案例的策略創新，在於把梳子的生產成本壓到最低、以薄利多銷取勝。",e:"錯誤。這是典型的 V 策略（差異化），不是 C 策略。關鍵是「不賣給和尚，賣給香客」，再透過大和尚題字、包裝文化意涵，把梳子變成具紀念價值的禮品，拉高顧客願付價格。"},
+{u:1,a:true ,q:"長庚大學早期以黑板取代白板（因簽字筆成本高）、使用地下水以節省自來水費，屬於 C 的策略。",e:"正確。這是降低營運成本的 C 策略，與台灣企業的「Cost Down」文化同一脈絡（如限制上廁所時間、重複使用鉛筆芯）。"},
+{u:1,a:false,q:"信用卡事業提供現金回饋、機場貴賓室、演唱會優先購票權，屬於 C 的策略。",e:"錯誤。這些都在拉高顧客認知價值與尊榮感，是以 V 策略為主。C 策略是降低生產或營運成本；P 策略則是運用博奕論考量競爭者行為來定價。"},
+{u:1,a:false,q:"定價、垂直整合、購併、知識管理、國際化、技術策略，都屬於「大策略」的範疇。",e:"錯誤。這些都是「小策略」（具體營運層面決策）。大策略是決定進入或退出哪些產業、公司願景與核心商業模式，對應孫子兵法「上兵伐謀」；小策略對應「伐兵、伐城」。"},
+{u:1,a:false,q:"馬雲所說的「七分略三分戰」，意思是具體戰術的執行重於戰略思考。",e:"錯誤。恰好相反：七分在「略」（戰略思考），三分在「戰」（具體戰術），強調戰略思考的重要性高於戰術執行。"},
+{u:1,a:true ,q:"識勢的核心理念是「時勢造英雄」，而非「英雄造時勢」。",e:"正確。課程觀點認為偉大企業家是「看到了機會，登上舞台演一齣好戲」，先認識產業趨勢（勢），再順勢佈局與轉型。預測策略終局即預測未來五到十年產業競爭環境與經營模式的變化。"},
+{u:1,a:true ,q:"晶片密度每 18 個月增加一倍（摩爾定律），使製造投資龐大、IC 設計與製造得以分離，催生了晶圓代工（Foundry）模式。",e:"正確。這是策略終局改變產業經營模式的經典案例，台積電即由此而生。"},
+{u:1,a:true ,q:"HTC 在智慧手機競爭中衰落的主要原因，是未能掌握手機作業系統（OS）平台。",e:"正確。智慧手機的策略終局由「手機功能競爭」轉向「平台（OS）競爭」，主導權落在 Apple 與 Google 手上，只做硬體功能者難以勝出。"},
+{u:1,a:false,q:"在伺服器產業轉向 OEM Direct 的過程中，廣達因畏懼 HP、Dell 砍單報復，拒接 Google 的直接訂單。",e:"錯誤。廣達「敢」接 Google 的 OEM Direct 訂單，儘管面臨 HP、Dell 砍單威脅，因而抓住了策略終局。"},
+{u:1,a:true ,q:"仁寶因相信「客戶永遠是對的」，未跟隨 OEM Direct 趨勢，因而錯失 NVIDIA 伺服器等機會。",e:"正確。過度服從既有客戶（HP、Dell）而忽略終局轉變，是錯失新興需求的典型。對照緯穎 2013 年自緯創分割、專攻 CSP 的 hardware total solution provider／Value Integrator，市值大幅成長。"},
+{u:1,a:false,q:"ROSE 模型中的 R 代表 Risk（風險）。",e:"錯誤。R 代表 Resources（資源）。ROSE＝Resources（資源）、Objective（目標）、Strategy（策略）、End Game（終局）。"},
+{u:1,a:true ,q:"ROSE 模型中的 E 代表 End Game（終局）。",e:"正確。舊版教材亦曾以 Equilibrium 表示。策略導出流程為：由外而內（取勢、預測終局）→ 由內而外（盤點資源、導出核心競爭力）→ 設定目標 → 佈局 → 導出策略。"},
+{u:1,a:false,q:"康師傅在中國方便麵市場的策略，是以單一全國主力品牌統一口味，藉此取得最大的經濟規模。",e:"錯誤。因中國「東酸西辣，南甜北鹹」口味差異大，且各地區市場規模已足夠支撐經濟規模，康師傅採「各地區口味品牌為主」而非單一主品牌。"},
+{u:1,a:true ,q:"巴菲特 2009 年買入 BNSF 鐵路公司，是因為預見美國頁岩油開採興起、產油區到市場需大量運輸，而油管不足、公路運輸成本高。",e:"正確。鐵路雖曾被視為夕陽產業，但從策略終局看出新的運輸需求，屬「看到別人看不到的機會」。"},
+{u:1,a:true ,q:"鴻海從 EMS（電子製造服務）轉向 AMS（汽車製造服務）時，透過「佈局人才」說服 60 多歲的電池技術人才加入，以解決關鍵技術瓶頸。",e:"正確。佈局方向除產品線、價值鏈、技術、地理區域、多角化外，也包含「人才」與「時間」。"},
+{u:1,a:false,q:"策略的三個階層中，「如何競爭」（定位、競爭優勢與競爭態勢）屬於功能部門策略層次。",e:"錯誤。「如何競爭」屬第二層「企業競爭策略」（事業單位層面）。第一層是公司整體策略佈局（進入／退出產業、產業組合），第三層功能部門策略才是財務、研發、生產、行銷的具體執行。"},
+{u:1,a:true ,q:"統一超商（統一企業）大量多角化佈局背後的策略思維是「New Life Style（新生活型態）」。",e:"正確。7-ELEVEN、Starbucks、Cosmed、無印良品、博客來、宅急便等，目的在為年輕世代創造便利、時尚、品質導向的新生活型態，讓顧客願付溢價；同時多為連鎖店，帶來穩定現金流與多元通路。"},
+{u:1,a:false,q:"效能（Effectiveness）是「把事情做對（Do the thing right）」，效率（Efficiency）是「做對的事（Do the right thing）」。",e:"錯誤。兩者定義顛倒。效能＝做對的事（選擇正確方向，如 Apple 強調移動性與電池續航）；效率＝把事情做對（最佳化資源利用，如 Ford 標準化生產單一車型降低成本）。"},
+{u:1,a:true ,q:"IBM 的「快老二策略」包含：外包微處理器（Intel）與作業系統（Microsoft）、採開放系統設計鼓勵第三方開發、以及大量促銷與廣大管道。",e:"正確。目的是迅速以第二名姿態進入並追趕 Apple 獨佔的 PC 市場。"},
+{u:1,a:false,q:"事後檢討 IBM PC 的失敗點之一，是它把 PC 定位為大型主機的「附屬品」，因而無法擴大市場。",e:"錯誤。問題恰恰是把 PC 定位為大型主機的「代替品」，衝擊了 IBM 自身主力產品的銷售。其他失敗點：賺不到相容附屬設備與軟體的利潤、關鍵零組件（Intel、Microsoft）失控、開放系統缺乏模仿障礙。結果股價自 180 美元跌至 44 美元。"},
+{u:1,a:false,q:"在「策略的段數」中，「口號策略」屬於段數最高、最有指導意義的一層。",e:"錯誤。口號策略是最簡陋的一段（如「強化體質」、「做大做強」），空泛而無實際指導意義。段數由低而高大致為：口號策略 → 基本策略（差異化／成本領導／集中市場，即 CQS）→ 平台策略 → 全方位解決方案提供商 → 價值整合商（如 Boeing 設計飛機、生產外包）。"},
+{u:1,a:false,q:"SWOT 分析只要做得夠細，就足以作為形成策略的完整依據，並能有效預測未來。",e:"錯誤。SWOT 僅是形成策略的「第一步」。盲點包括：強弱機威定義不清（視角不同結論不同）、過度強調機會而導向「以機會為成長」而非「以能力為成長」、競爭者都做 SWOT 導致策略同質化而陷入價格競爭、常被用來事後諸葛而非預測未來。"},
+
+/* ===== 單元二：產業分析與策略管理 (115/09/05) 22題 ===== */
+{u:2,a:false,q:"巴菲特的名言是：「當經營困難的產業碰到管理卓越的經理人，通常是經理人打贏產業的困難。」",e:"錯誤。原意相反：「通常是產業的困難打贏經理人」。結論是產業（結構）對企業獲利的影響大於企業自身功能，因此應進入有進入障礙保障的高利潤產業。"},
+{u:2,a:true ,q:"競爭生態分析的基本邏輯可寫成：企業利潤 = f（產業利潤, 在產業中的地位），而產業利潤 = f（產業競爭激烈程度）。",e:"正確。由此進一步導出市場的關鍵成功因素（KSF）與關鍵存活因素；KSF 會隨競爭者模仿，逐漸演變為關鍵存活因素。"},
+{u:2,a:true ,q:"ATM 早期是銀行業的關鍵成功因素，後來演變為關鍵存活因素。",e:"正確。其他 KSF 例子：製紙業的紙漿產出率與樹木基因工程、航空業的轉運中心、時裝業的快速反應（Zara）、百貨／電子業的存貨週轉率、金融業的利差。"},
+{u:2,a:false,q:"人壽保險業的三項關鍵差益為「利差、匯差、費差」。",e:"錯誤。應為「利差、死差、費差」，不是匯差。"},
+{u:2,a:false,q:"依美國產業獲利率資料，航空業在 2000–2010 年間屬於高獲利產業。",e:"錯誤。航空業該期間淨資產報酬率（ROCE）為 −11.3%（2022 年才回到 15.5%），屬典型低獲利產業：產品差異化低、固定成本高、超額產能高、替代品（高鐵）威脅大、進出障礙低、品牌忠誠度低。高獲利者為煙草（33.5%／64.5%）、個人清潔用品、製藥等。"},
+{u:2,a:false,q:"產業結構分析的正確順序，是先做五力分析，再把五力的結論套用到整條產業價值鏈上。",e:"錯誤。順序相反：先做產業價值鏈分析切出環節，再在「每一段」價值鏈上分別做五力分析，以導出該段的潛在利潤。"},
+{u:2,a:true ,q:"Shimano（自行車變速器）與 Intel（CPU）是在價值鏈中選取獨特段落、打造品牌並直接訴求終端消費者的例子。",e:"正確。這是價值鏈戰略之一：選取戰略定位，讓中間零組件取得對終端消費者的品牌力。"},
+{u:2,a:false,q:"利豐洋行的策略是自建全球工廠、垂直整合所有生產環節，以縮短生產週期。",e:"錯誤。利豐是「價值整合者」：它不自己生產，而是整合全球製造商、串接價值鏈上多個環節來創造價值並縮短生產週期。"},
+{u:2,a:false,q:"在 AI 產業價值鏈中，最稀缺的產能集中在價值鏈下游的應用服務端。",e:"錯誤。最稀缺的產能集中在「上游」：加速器／ASIC、HBM、先進封裝與領先晶圓廠。AI 需求是從基礎模型（Foundation models）一路流向晶圓（wafers）。"},
+{u:2,a:true ,q:"HBM（高頻寬記憶體）製造商的利潤率可高達 80%。",e:"正確。利潤集中在 AI 關鍵瓶頸：NVIDIA 與 TSMC 營業利益率超過 60%、HBM 高達 80%，而 AWS、ASML 約 37–39%。"},
+{u:2,a:true ,q:"川湖（伺服器滑軌）營業利益率高達 82%，背後有約 3800 個專利及高精度、高穩定性的技術門檻支撐。",e:"正確。說明即使是「看似不起眼的零件」，只要具備技術獨特性與模仿障礙、且需求高供給有限，仍可賺取高額利潤。"},
+{u:2,a:false,q:"鴻海因大量承接 AI 伺服器系統組裝，營業利益率已達約 38%。",e:"錯誤。鴻海因從事大量系統組裝，營業利益率僅約 3.8%。對比 NVIDIA、TSMC 的 60%＋與 HBM 的 80%，印證利潤分配取決於需求／供給的稀缺度與模仿障礙。"},
+{u:2,a:false,q:"替代品的威脅越高，企業產品的價格上限反而越不受限制。",e:"錯誤。替代品威脅越高，產品的價格上限越受壓抑。影響替代品威脅的因素為替代品價格與消費者轉換成本。"},
+{u:2,a:true ,q:"一般而言，市場集中度高則產業內競爭較不激烈，獲利較高。",e:"正確。對照硬碟機產業的啟示：「廠商數目越少越容易賺錢」。進入障礙越高，潛在進入者威脅也越低。"},
+{u:2,a:false,q:"固定成本相對變動成本越高的產業，廠商越傾向以品質競爭取代價格競爭，因此競爭較不激烈。",e:"錯誤。固定成本高時廠商急於攤提固定成本，反而傾向價格競爭，使競爭更激烈、利潤更低（航空業、面板業皆是）。"},
+{u:2,a:true ,q:"7-ELEVEN 搶佔便利的街角位置，屬於「佔據產品空間」這類結構性進入障礙。",e:"正確。結構性進入障礙還包括：先驅優勢、經驗曲線效果、掌握重要元件、政府政策、進入阻絕戰略、規模經濟、認知產品差異化、品牌忠誠度、轉換成本、資金需求、通路建立。"},
+{u:2,a:true ,q:"五力分析的缺點之一是過於強調議價能力，忽略了產業中合作與共享利益的可能性。",e:"正確。其他缺點：未涵蓋需求特性、互補品、網路生態系統等重要產業特性，且不一定正確或有用，須結合其他框架與產業理解。"},
+{u:2,a:false,q:"PC 產業的「微笑曲線」是指產業利潤集中於價值鏈中段的系統組裝與零件環節。",e:"錯誤。利潤集中於價值鏈「兩端」（如 Intel 的 CPU 與 Microsoft 的作業系統），中間的系統組裝與零件業者利潤率低，形成「辛苦的微笑曲線」。"},
+{u:2,a:true ,q:"硬碟機產業後來獲利改善，主要因 SSD 興起與泰國水患意外減少產能，使倖存廠商（Seagate、Western Digital）市場集中度提高。",e:"正確。早期十幾家大廠、技術差異不大、買主（大型 PC 廠）議價能力強，競爭極為激烈。TFT-LCD 亦類似：供應商議價力強、面板廠利潤被擠壓，廠商由 11 家減至 4 家。"},
+{u:2,a:false,q:"衣服標籤製造商因產品單價低、客戶更換供應商的轉換成本也低，所以難以獲利。",e:"錯誤。它雖單價低，但客戶對品質（如不易變色）要求高、更換供應商的轉換成本「較高」，具有一定模仿難度與客戶鎖定效應，因此可以賺錢。"},
+{u:2,a:false,q:"Dell 的接單生產（Build to Order）策略在筆記型電腦（NB）產業同樣非常成功。",e:"錯誤。BTO 在 NB 產業「不成功」，因為筆電零組件多、組裝複雜，難以用接單生產模式運作。"},
+{u:2,a:true ,q:"ZARA 的快速時尚模式，使其打折貨品比例僅約 15%，低於一般公司約 30%，顯著減少存貨疊價損失。",e:"正確。成功關鍵在於遍布全球的店長每日回報顧客需求與「未購買原因」，總部快速反應設計、生產、上架。"},
+
+/* ===== 單元三：核心競爭力與競爭優勢 (115/09/12) 24題 ===== */
+{u:3,a:true ,q:"課程主張「以能力為主的策略」優於「以機會為主的策略」。",e:"正確。理由是機會對所有人都存在，但只有具備特定能力者才能把握，因此企業應聚焦於培養自己擅長之處。"},
+{u:3,a:true ,q:"核心競爭力是指透過管理程序，將有形與無形資源轉化為「難以模仿、得以延伸」的能力，並在不同產品市場取得競爭優勢。",e:"正確。兩個關鍵字：難以模仿（模仿障礙）與得以延伸（可跨產品線運用）。管理課題則是如何識別、發展、組織（orchestrate）與運用（leverage）。核心競爭力策略有三：培養、延伸、組合不同核心競爭力。"},
+{u:3,a:false,q:"在「大樹」比喻中，樹根代表產品線，樹的枝幹代表核心競爭力，果子代表產品。",e:"錯誤。樹根＝核心競爭力，枝幹＝產品線，果子＝產品。核心競爭力在地下看不見，卻支撐著所有枝幹與果實。"},
+{u:3,a:true ,q:"Canon 的核心競爭力為精密機械（Precision Mechanics）、精細光學（Fine Optics）與微電子（Microelectronics）。",e:"正確。由這三項技術的組合延伸出相機、雷射／噴墨印表機、傳真機、影印機，以及光罩對準機、步進式曝光機等半導體設備。"},
+{u:3,a:false,q:"Honda 的核心競爭力是車體造型設計與經銷通路管理能力。",e:"錯誤。Honda 的核心競爭力是引擎技術（CVCC 引擎）。因此能延伸至船用引擎、發電機、泵、鏈鋸、掃雪機、摩托車、汽車，甚至商務噴射機與 GE-Honda 渦扇引擎——凡是需要動力的產品。"},
+{u:3,a:false,q:"3M 的核心競爭力是精密光學與半導體製程技術。",e:"錯誤。3M 的核心競爭力是黏著技術與研磨技術，以及材料科學。從砂紙、汽車金剛砂、Scotch-tape，到錄音帶、Post-it Notes，再到路標標線、LED 照明、藥物輸送系統、手術膠帶與敷料，超過 4 萬種產品都建立在同一組基礎技術上。"},
+{u:3,a:true ,q:"聯發科早期 CD-ROM 晶片成功的關鍵，是能有效讀取品質不佳或破舊的光碟，掌握高精度讀取與容錯能力。",e:"正確。其核心競爭力包含低功耗、低延遲、高速運算與通訊連結。並將 DVD 播放機從 500 美元降至 40 美元，使其普及化。"},
+{u:3,a:true ,q:"柯達因底片業務衰落而倒閉，富士（Fuji）則憑藉光學與化學技術轉型至醫療、化妝品等領域。",e:"正確。啟示是核心競爭力不應侷限於單一產品，而應是具跨產品線共通性的技術，才能在產業變革中轉身。"},
+{u:3,a:true ,q:"台積電工程師曾運用製程控制能力，將石斑魚苗孵化率從 4 萬顆提升至 12 萬顆。",e:"正確。這顯示核心製程技術可在其他領域找到應用，但「是否延伸」取決於戰略定位——台積電最終選擇專注半導體。"},
+{u:3,a:false,q:"一般而言，財務與實體等「有形資源」比技術、品牌、聲譽等「無形資源」更不容易被取代。",e:"錯誤。恰好相反。財務（借貸能力）與實體（工廠、設備、土地）資源易被取代；技術（專利、知識）、聲譽（品牌、顧客忠誠度）等無形資源，以及關鍵人才，才具有不可取代性。"},
+{u:3,a:false,q:"1990 年工研院授權 400 家廠商生產筆電原型，最後只有廣達、仁寶、英業達三家脫穎而出，說明關鍵在於是否搶到市場機會而非能力。",e:"錯誤。結論正相反：400 家面對的是「同一個」市場機會，差別在能力。這正是「以能力為主的策略優於以機會為主的策略」的實證。"},
+{u:3,a:false,q:"在完全競爭市場中，效率最高的廠商仍能持續賺取超額利潤。",e:"錯誤。完全競爭市場沒有超額利潤。競爭優勢來自市場的「不完全性」：外部變革（顧客需求、價格、技術改變）與內部變革（企業間資源異質性、創意與策略創新）。"},
+{u:3,a:false,q:"抵禦模仿機制中的「隱藏優異績效（賺錢不露白）」，主要是針對競爭者「取得資源」這一必要條件。",e:"錯誤。它針對的是第一個條件「辨識」——讓競爭者看不出你在賺錢，成功公司常選擇不上市以免營運狀況透明化。針對「取得資源」的做法，是以缺乏流動性且難以複製的資源建立優勢。"},
+{u:3,a:true ,q:"「因果模糊性」是指使競爭者難以理解企業成功的真正原因，因為成功來自內嵌於策略活動系統中的多重因素。",e:"正確。例如 7-ELEVEN 的利潤來源不只販售商品，還包含煙酒牌照、新產品等，難以被診斷與複製。模仿的四個必要條件為：辨識、模仿誘因、診斷、取得資源。"},
+{u:3,a:false,q:"由於規模經濟與經驗曲線的效果穩固，成本優勢通常比差異化優勢更能長期維持。",e:"錯誤。結論相反：成本優勢難以持久。國際化可能使原有成本地位失去優勢、匯率波動降低持續性、低成本國家持續威脅、成本領導者易陷入價格戰，且規模經濟與經驗曲線的成本優勢往往逐漸同質化被學會。差異化（尤其技術差異化）才是長期競爭關鍵。"},
+{u:3,a:true ,q:"經驗曲線是指累積產量每增加一倍，標準產品的單位附加價值成本就以固定百分比下降，通常為 20% 至 30%。",e:"正確。半導體產業最為明顯，日本鐘錶、英國冰箱亦是。因此高市佔率可加速推動經驗曲線，投資者也傾向投資龍頭廠商。"},
+{u:3,a:false,q:"廣告的規模經濟效果，使銷量最大的領導品牌的「單位廣告成本」最高。",e:"錯誤。正好相反：領導品牌因銷量大，攤提後的單位廣告成本「最低」，這本身就是一種成本優勢，也可反過來用來提高對手成本。"},
+{u:3,a:true ,q:"西南航空（Southwest Airlines）只使用波音 737 單一機型，以降低維修、機師培訓與零件庫存成本。",e:"正確。它的成本優勢來自一整套環環相扣的「策略行動系統」：短途點對點航線、二級機場、無托運行李、有限旅客服務、不預訂座位以加速登機提高周轉率、員工高薪與持股、一天 8 班的密度經濟。"},
+{u:3,a:true ,q:"王永慶賣米時提供送米到府、將舊米倒出再裝新米、統計用米時間主動補米等服務，屬於「互補性服務」的有形差異化。",e:"正確。有形差異化包含可觀察的產品特徵（尺寸、顏色、材料）、性能、包裝與互補性服務；無形差異化則與形象、地位、專屬感及認同有關，難以直接觀察且具主觀性。"},
+{u:3,a:false,q:"水平差異化（Horizontal differentiation）是指產品功能不同、品質有高低之分。",e:"錯誤。品質有高低之分的是「垂直差異化」；水平差異化是指在同等品質下滿足不同偏好。另需區分：差異化談「如何競爭」，市場區隔談「在哪裡競爭」；廣泛差異化訴求共同需求（McDonald's、Gillette），集中差異化訴求各群差異（Harley-Davidson、Ralph Lauren）。"},
+{u:3,a:false,q:"HTC 的品牌名稱清楚易記、容易讓顧客產生聯想，因而強化了它的差異化效果。",e:"錯誤。課程指出 HTC 的品牌名稱不明確，無法讓顧客產生聯想與記憶，削弱了差異化效果。並強調品牌必須有技術支撐，不能只靠明星代言——全球市值最大公司（Alphabet、Apple、Microsoft、Nvidia、Amazon）的差異化關鍵都在技術。"},
+{u:3,a:true ,q:"佳美食品的策略定位是成為「農產品風險的吸收者」，向買主（如統一）賺取風險溢價。",e:"正確。它把農產品產量不穩定的風險，轉化為穩定的果汁供應；買主不願承擔價格波動風險，願意支付穩定價格。其能力包含移動式果汁工廠（裝在貨櫃車上到產地加工）、荔枝剝皮機、雷射切橘子、低溫保存兩年、氣候預測團隊、國際貨幣操作、百種以上產品分散風險。"},
+{u:3,a:false,q:"鼎泰豐的人力成本約佔營收 25%，低於一般餐飲業水準，是其成本優勢的來源。",e:"錯誤。鼎泰豐人力成本約佔營收 52%，「高於」一般餐飲業。這項高投入反而成為模仿障礙，因為其他業者不願承擔此成本——屬於「高成本投資於品質與效率」的 C 策略。"},
+{u:3,a:true ,q:"讓顧客排隊是鼎泰豐重要的 P（價格）策略，可帶來飢餓行銷、口碑宣傳、降低價格敏感度與提高權利金收入等多重效益。",e:"正確。排隊人潮也讓百貨公司與國際夥伴相信其獲利能力，願付更高租金或授權金；同時控制展店速度以培養人才、維持供不應求。注意：鼎泰豐在台灣「不開放加盟」，國外則透過高額權利金授權，國際授權金是重要收入來源。"},
+
+/* ===== 單元四：競爭策略 (115/10/04) 30題 ===== */
+{u:4,a:false,q:"卡特爾（Cartel）類型的明顯合作通常相當穩定，因為成員的目標一致。",e:"錯誤。卡特爾通常「不穩定」，因為廠商目標不同，且欺騙合作者獲利高又不易被識破。OPEC 即因成員國目標差異及電動車興起，未來穩定性受挑戰。明顯合作（Explicit Collusion）包含固定價格、瓜分市場（如光陽與三陽曾約定劃分北部、南部市場）、共同銷售、集體行動、共同圍標、計劃性落伍。"},
+{u:4,a:true ,q:"1999–2006 年間多家液晶螢幕廠商聯合漲價並留下會議記錄（Crystal Meeting），被檢方查獲並處罰。",e:"正確。三星因此遭受重罰；廣明光電因不肯和解，最終被判賠鉅額。這屬於明顯合作中的「固定價格」。"},
+{u:4,a:false,q:"光碟機業被美國司法部與歐盟重罰，是因為檢方掌握了廠商協議具體價格數字的書面文件。",e:"錯誤。該案廠商在電子競標中僅透過業務間檯面下的了解，試探競爭者投標「積極或不積極」的程度，並未具體觸及價格數字；但主管機關仍以「事後達成價格發展一致」反推「共同犯意」而重罰。"},
+{u:4,a:false,q:"美國重機電業的「月相制度（Moon Phase）」，是指各廠商依照季節輪流降價搶單。",e:"錯誤。月相制度是共同圍標（Bid Rigging）：各廠商依一本「價格指引」計算投標價，並依「月亮的陰晴圓缺」輪流得標。後因記者發現南北部決標價格相同而引發調查，業者入獄。"},
+{u:4,a:true ,q:"Google、Apple、Intel、Adobe、Intuit 於 2004–2009 年協議互不挖角，屬於「集體行動」，最終以 4.15 億美元與員工和解。",e:"正確。此案由 Facebook 告發。集體行動指廠商協議不與某方合作或採取集體排他行為。"},
+{u:4,a:false,q:"1924 年 GE、歐斯朗、飛利浦合謀將燈泡壽命由 1000 小時延長至 2500 小時，以提升產業的品質形象。",e:"錯誤。方向相反：是把壽命「從 2500 小時降至 1000 小時」以增加銷售，屬「計劃性落伍」。同類例子：日本規定計程車 8 年報廢；LED 燈泡透過線路設計讓其在 1 萬小時左右損壞（燈泡本身可亮 5 萬小時）。"},
+{u:4,a:false,q:"Apple 於 2017 年透過軟體更新降低舊型 iPhone 速度，後於 2020 年同意支付 5000 萬美元和解。",e:"錯誤。金額是 5 億美元，不是 5000 萬美元。此案並由法國檢方調查，屬計劃性落伍的爭議案例。"},
+{u:4,a:true ,q:"觸動策略（Triggering Strategy）是廠商依循競爭者行動「以牙還牙、以眼還眼」，對手漲價則漲價、跌價則跌價，最終形成不降價的默契。",e:"正確。台塑石化與中油即為典型：台塑成本較低，但中油是國營、政府不允許其虧損，台塑價格跟隨中油，雙方共同維持高油價而沒有價格競爭。菜市場菜販大聲喊價達成默契亦同理。"},
+{u:4,a:true ,q:"最惠國待遇條款（承諾客戶可享本季最低價、降價則補償價差）表面有利客戶，實際上卻阻礙廠商降價。",e:"正確。因為一旦降價就必須補償所有已簽約客戶，大幅提高降價成本。杜邦 Ethyl 最先提出；日發超市「更低價退還 10 倍價差」亦屬此類。"},
+{u:4,a:false,q:"台灣銀行業的「基本放款利率」制度，因降價成本低，使銀行更容易發動利率價格戰。",e:"錯誤。方向相反。該制度搭配最惠國待遇式的補償義務，使一家銀行降價須補償所有已簽約客戶，「大幅增加」降價成本，因而阻礙降價、達成謀和（Tacit Collusion）。"},
+{u:4,a:true ,q:"美光（Micron）將 DRAM 技術授權給台灣華亞科技，再以市價固定百分比買回產品，屬於「授權對手」的謀和手法。",e:"正確。美光藉此收授權費、減少資本支出、避免競爭並分散風險。另一例是 Google 發起 PAX 聯盟免費交叉授權，壯大 Android 生態同時降低各方投入研發誘因。"},
+{u:4,a:false,q:"價格領導（Price Leadership）是指由產業中的小廠商先行定價，龍頭廠商再跟隨。",e:"錯誤。方向相反：由產業龍頭先定價，其他廠商跟隨。例如美國三大車廠；台灣 5G 電信業由中華電信帶頭，遠傳表示資費會跟隨帶頭者走。"},
+{u:4,a:false,q:"吸脂策略（Cream Skimming）是指廠商全品項、全市場通吃，以規模壓制競爭者。",e:"錯誤。恰好相反：只專注市場上利潤最高、最「肥美」的部分，避免全面開戰。例如 Apple 專注高端手機、EMBA 只收高階經理人、電商只賣最受歡迎的商品。"},
+{u:4,a:true ,q:"焦點競爭（Focal Point Competition）是把價格設定在某些特定、易於記憶的數字（如 $1299、$9.99），形成默契。",e:"正確。例如 Spotify 等音樂訂閱服務皆定價 $9.99／月，台大周邊餐廳麵攤價格高度一致。"},
+{u:4,a:true ,q:"以小博大策略（Judo Economics）是小廠商利用大廠商「降價須全面降價、成本太高」的弱點，以游擊戰術搶佔市場。",e:"正確。獨佔大廠（100 單位）若為驅逐新進小廠（10 單位）而降價，100 單位全要降，損失巨大；維持原價只損失 10% 市場。台灣行動電信業的和信電訊即以網內互打 $900／月搶高端客戶，最終由遠傳併購收場。"},
+{u:4,a:true ,q:"華碩 2008 年推出 $300 的 ePC 搶佔自身 $600 筆電市場，屬「傷己一百、殺敵一千」，但盲點在於未考慮模仿障礙。",e:"正確。HP、Dell 迅速跟進，最終導致大量庫存。對照 Coke vs. Pepsi 折扣券：市佔率高者跟隨降價損失巨大，最佳策略是讓對手自傷。"},
+{u:4,a:true ,q:"多重市場接觸（Multimarket-Contact）會使在多個市場同時競爭的廠商形成恐怖平衡，萬華化學在 MDI 市場即為案例。",e:"正確。萬華化學進入後，BASF 等原大廠在各國設小型銷售辦公室，警告其若在某一市場發動價格戰就會在其他市場報復，從而維持市場均衡、共享高利潤。"},
+{u:4,a:true ,q:"7-ELEVEN 搶佔街角好地點、JVC 的 VHS 格式勝過 Sony 的 Beta，都屬於進入阻絕中的「先佔策略（Preemption）」。",e:"正確。先佔包括地點之爭、標準之爭、快速做大（flood the market）、壟斷關鍵供應（如高通禁止 Apple 採用其他通訊晶片）。台積電「誘敵深入」讓三星投入先進製程、自身以八吋六吋廠利潤支撐，亦屬同類思維。"},
+{u:4,a:false,q:"品牌擴散策略（Brand Proliferation）的目的，是集中資源經營單一強勢品牌，以便達到最小經濟規模。",e:"錯誤。目的相反：在產品空間中「遍佈多重品牌」、佔據所有細分區塊，使新進入者的單一品牌難以達到最小經濟規模。例如可口可樂的 Coke／Light Coke／Fanta／Sprite／Zero，P&G 洗髮水、康師傅子品牌、王品集團多品牌矩陣。"},
+{u:4,a:true ,q:"超額產能策略是平時維持一定程度的超額產能，若競爭者進入則全速生產、增加供給以打擊進入者。",e:"正確。例如台積電赴美投資 2650 億美元維持超額產能以嚇阻 Intel 與 Samsung 擴廠；迪士尼在佛羅里達留有許多空地可隨時加設新樂園。"},
+{u:4,a:true ,q:"台塑「只賺一毛一毛的，不賺一塊一塊的」長期保持低價，屬於「限制價格（Limit Pricing）」。",e:"正確。目的是讓潛在競爭者認為市場利潤不高而不願進入。"},
+{u:4,a:false,q:"湖南叉車發動機製造廠（70% 市佔率）將保固期由 2 年縮短至 6 個月，以降低自身成本並提高獲利。",e:"錯誤。方向相反：它把保固期「由 6 個月延長至 2 年」，屬於「提高對手成本」。因其規模大、成本低，此舉對自身影響小，卻大幅增加小廠的保固成本。同類手法：過度廣告（Quaker Oats）、過度研發（IBM、NVIDIA 的 CUDA）、年年換模具、鎖定 HBM 供應商、Google 每年付 Apple 100 億美元成為預設搜尋引擎。"},
+{u:4,a:true ,q:"高通（Qualcomm）要求使用其技術的廠商必須打包授權所有專利、按手機出廠價 3–5% 計費，屬於捆綁銷售（Bundling）。",e:"正確。高通以授權收入補貼手機晶片銷售，打擊聯發科等競爭者。其他例子：微軟綁作業系統與 Office、NVIDIA 綁 GPU 與 CUDA、Google 綁搜尋引擎與廣告銷售；排外銷售則如盒馬鮮生僅限支付寶。"},
+{u:4,a:false,q:"垂直整合一定能同時提高營業利益率（ROS）與投資報酬率（ROI）。",e:"錯誤。這是「垂直整合的迷思」：垂直整合可能增加營業利益率（ROS），但不一定增加投資報酬率（ROI），因為它同時大幅墊高了投入的資本。垂直策略的利益在鎖喉（Foreclosure）、雙重打壓、排外銷售與價格歧視。"},
+{u:4,a:true ,q:"跳蛙式競爭策略（Leapfrog）是跳過競爭對手所在的製程節點，直接進入下一代製程，以避免正面競爭。",e:"正確。台積電在與三星的半導體製程競爭中常採此法：跳過三星研發的製程，直接攻克下一代。"},
+{u:4,a:false,q:"在經驗曲線定價下，台積電將成本下降的好處以降價方式回饋給下單的聯發科。",e:"錯誤。台積電將經驗曲線帶來的成本下降「視為自身努力的成果」，不降價給下單客戶，而是自行賺取利潤。"},
+{u:4,a:true ,q:"康師傅的進入阻絕策略包含：推出「福滿多」等低價品牌（品牌擴散）、維持 1.98 人民幣低價（限制定價）、大量廣告（提高對手成本）、快速擴大產能（先佔）。",e:"正確。其 KSF 為口味（萬人試吃）、品牌（親民、成為方便麵代名詞）、價格（不追暴利）、擴大產能、通路；並以合資生產食用油、紙箱、吹瓶機與排他供應合約進行垂直策略。"},
+{u:4,a:false,q:"IBM 在 1960 年代的主機電腦競爭策略，是鼓勵顧客購買主機而非租賃。",e:"錯誤。IBM 是鼓勵「租賃」而非購買：頻繁改變主機機型、購買價格高於租賃價格、舊機型折價低、購買者維護費用高。其他手法還有提前宣佈新產品、捆綁軟硬體與服務、高主機價低週邊價、拒絕維護競爭者週邊設備、免費訓練使用者、價格歧視、垂直整合進入電腦租賃業。"},
+{u:4,a:false,q:"台積電的知識管理「recipe」約為 20 種製程、每製程約 20 個參數，共約 400 個參數。",e:"錯誤。規模遠大於此：約 200 多種製程 × 每製程約 200 個參數 ≈ 4 萬個參數，能為 500 多家公司製造 2 萬種產品、良率可達 95%。這套累積 30 年的知識管理系統、龐大人才庫（矽谷計劃每年培養 8000 名電子工程師）與「不與客戶競爭」的承諾，共同構成極高的模仿障礙。"},
+{u:4,a:true ,q:"依「15 年定律」，2012 年 GPU 被用於深度學習帶來 AI 技術突破，預計 2027 年將再迎來 AI 應用的爆發式成長。",e:"正確。歷史軌跡：1947 電晶體、1964 IBM360、1981 IBM PC 與 GSM、1994 Internet、2007 Facebook 與 iPhone、2012 GPU 用於深度學習、2027 預計 AI 應用爆發。背後機制是摩爾定律約 15 年帶來 100 倍性價比提升。"},
+];
+
+const UNITS = {
+  1:{name:"大策略與小策略", short:"① 大策略小策略", date:"115/08/29"},
+  2:{name:"產業分析與策略管理", short:"② 產業分析", date:"115/09/05"},
+  3:{name:"核心競爭力與競爭優勢", short:"③ 核心競爭力", date:"115/09/12"},
+  4:{name:"競爭策略", short:"④ 競爭策略", date:"115/10/04"}
+};
+const SIZES = [10,20,30,50,100];
+const KEY = "sm.exam.v2";
+
+QUESTIONS.forEach((q,i)=>q.id=i+1);
+const BANK = new Map(QUESTIONS.map(q=>[q.id,q]));
+const POOL = {}; [1,2,3,4].forEach(u=>POOL[u]=QUESTIONS.filter(q=>q.u===u).length);
+
+let state = { size:20, scope:0, paper:null, answers:{}, submitted:false, view:"all", order:null };
+
+try{
+  const s=JSON.parse(localStorage.getItem(KEY)||"null");
+  if(s && typeof s==="object"){
+    if(SIZES.indexOf(s.size)>=0) state.size=s.size;
+    if([0,1,2,3,4].indexOf(s.scope)>=0) state.scope=s.scope;
+    if(Array.isArray(s.paper) && s.paper.length && s.paper.every(id=>BANK.has(id))) state.paper=s.paper;
+    if(s.answers && typeof s.answers==="object") state.answers=s.answers;
+    state.submitted=!!s.submitted;
+  }
+}catch(e){}
+
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify({
+    size:state.size, scope:state.scope, paper:state.paper, answers:state.answers, submitted:state.submitted
+  })); }catch(e){}
+}
+
+/* ---------- 出卷 ---------- */
+function shuffled(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function allocate(size,scope){
+  const us = scope ? [scope] : [1,2,3,4];
+  const totalPool = us.reduce((s,u)=>s+POOL[u],0);
+  const n = Math.min(size,totalPool);
+  if(us.length===1){ const o={}; o[us[0]]=n; return {alloc:o,n:n,cap:n<size}; }
+  const rows = us.map(u=>({u, exact:n*POOL[u]/totalPool}));
+  const alloc={}; let used=0;
+  rows.forEach(r=>{ alloc[r.u]=Math.floor(r.exact); used+=alloc[r.u]; });
+  const byRem = rows.slice().sort((a,b)=>(b.exact%1)-(a.exact%1));
+  let i=0, guard=0;
+  while(used<n && guard++<999){
+    const u=byRem[i%byRem.length].u;
+    if(alloc[u]<POOL[u]){ alloc[u]++; used++; }
+    i++;
+  }
+  return {alloc:alloc, n:n, cap:n<size};
+}
+function buildPaper(){
+  const {alloc} = allocate(state.size, state.scope);
+  let ids=[];
+  [1,2,3,4].forEach(u=>{
+    const k=alloc[u]||0;
+    if(!k) return;
+    ids = ids.concat(shuffled(QUESTIONS.filter(q=>q.u===u).map(q=>q.id)).slice(0,k));
+  });
+  ids.sort((a,b)=>{ const qa=BANK.get(a),qb=BANK.get(b); return qa.u-qb.u || a-b; });
+  state.paper=ids; state.answers={}; state.submitted=false; state.view="all"; state.order=null;
+  save();
+}
+function paperQs(){ return (state.paper||[]).map(id=>BANK.get(id)); }
+
+/* ---------- 計分 ---------- */
+function tally(list){
+  let ok=0,no=0,blank=0;
+  list.forEach(q=>{
+    const a=state.answers[q.id];
+    if(a===undefined) blank++; else if(a===q.a) ok++; else no++;
+  });
+  return {ok,no,blank,done:ok+no,total:list.length};
+}
+
+/* ---------- 設定畫面 ---------- */
+const sizeRow=document.getElementById("sizeRow"), scopeRow=document.getElementById("scopeRow");
+SIZES.forEach(n=>{
+  const b=document.createElement("button");
+  b.className="chip"; b.type="button"; b.dataset.size=n; b.textContent=n+" 題";
+  b.addEventListener("click",()=>{state.size=n;save();renderSetup();});
+  sizeRow.appendChild(b);
+});
+[{v:0,label:"全部單元",n:QUESTIONS.length}].concat([1,2,3,4].map(u=>({v:u,label:UNITS[u].short,n:POOL[u]})))
+.forEach(d=>{
+  const b=document.createElement("button");
+  b.className="chip"; b.type="button"; b.dataset.scope=d.v;
+  b.innerHTML=d.label+'<span class="n">'+d.n+'</span>';
+  b.addEventListener("click",()=>{state.scope=d.v;save();renderSetup();});
+  scopeRow.appendChild(b);
+});
+
+function renderSetup(){
+  sizeRow.querySelectorAll(".chip").forEach(b=>{
+    b.setAttribute("aria-pressed",String(+b.dataset.size===state.size));
+  });
+  scopeRow.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.scope===state.scope)));
+  const r=allocate(state.size,state.scope);
+  const parts=[1,2,3,4].filter(u=>r.alloc[u]).map(u=>UNITS[u].short+" "+r.alloc[u]+" 題");
+  const poolN = state.scope?POOL[state.scope]:QUESTIONS.length;
+  const plan=document.getElementById("plan");
+  plan.innerHTML='<span class="hd">本卷配置</span>'+
+    '自 '+(state.scope?UNITS[state.scope].name+"（"+poolN+" 題）":"全題庫（"+poolN+" 題）")+
+    ' 隨機抽出 <b>'+r.n+'</b> 題，滿分 '+r.n+' 分。<br>'+
+    '<span class="mix">'+parts.join("　·　")+'</span>'+
+    (r.cap?'<span class="cap">此範圍僅有 '+poolN+' 題，已自動調整為 '+r.n+' 題。</span>':'');
+  document.getElementById("btnStart").textContent="開始測驗（"+r.n+" 題）";
+}
+document.getElementById("btnStart").addEventListener("click",()=>{
+  buildPaper(); render(); window.scrollTo({top:0,behavior:"smooth"});
+});
+
+/* ---------- 檢視／重新出卷 ---------- */
+const vAll=document.getElementById("vAll"), vBlank=document.getElementById("vBlank"), vWrong=document.getElementById("vWrong");
+vAll.addEventListener("click",()=>{state.view="all";render();});
+vBlank.addEventListener("click",()=>{state.view="blank";render();});
+vWrong.addEventListener("click",()=>{state.view="wrong";render();});
+document.getElementById("btnNewPaper").addEventListener("click",()=>{
+  const t=tally(paperQs());
+  if(state.submitted || t.done===0){ backToSetup(); return; }
+  openModal({
+    step:"重新出卷",
+    title:"要放棄目前這份試卷嗎？",
+    body:'<div class="m-warn"><b>目前已作答 '+t.done+' 題尚未送出。</b>重新出卷會清除這些答案，並重新抽題。</div>',
+    actions:[{label:"取消",cls:"quiet",act:closeModal},
+             {label:"確定重新出卷",cls:"danger",act:()=>{closeModal();backToSetup();}}]
+  });
+});
+function backToSetup(){
+  state.paper=null; state.answers={}; state.submitted=false; state.view="all"; state.order=null;
+  save(); render(); window.scrollTo({top:0,behavior:"smooth"});
+}
+document.getElementById("btnTop").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+
+/* ---------- 送出：兩段式確認 ---------- */
+document.getElementById("btnSubmit").addEventListener("click", step1);
+
+function step1(){
+  const qs=paperQs(), t=tally(qs);
+  const blanks=[]; qs.forEach((q,i)=>{ if(state.answers[q.id]===undefined) blanks.push(i+1); });
+  const block = blanks.length
+    ? '<div class="blanklist"><span class="key">未作答題號</span><div class="nos">'+blanks.map(n=>"第 "+n+" 題").join("、")+'</div></div>'
+    : '<div class="blanklist good"><span class="key">全卷完成</span>本卷 '+t.total+' 題全部已作答，沒有遺漏。</div>';
+  openModal({
+    step:"第 1 次確認 · 共 2 次",
+    title:"作答情況確認",
+    body:'<div class="mstats">'+
+      '<div class="mstat done"><div class="v">'+t.done+'</div><div class="k">已作答（共 '+t.total+' 題）</div></div>'+
+      '<div class="mstat blank"><div class="v">'+t.blank+'</div><div class="k">未作答</div></div>'+
+      '</div>'+block,
+    actions:[
+      {label:"繼續作答",cls:"quiet",act:()=>{ closeModal(); if(blanks.length) jumpTo(blanks[0]); }},
+      {label:"確認，下一步",cls:"primary",act:step2}
+    ]
+  });
+}
+function step2(){
+  const t=tally(paperQs());
+  openModal({
+    step:"第 2 次確認 · 共 2 次",
+    title:"確定送出並計算成績？",
+    body:'<div class="m-warn"><b>送出後本卷即鎖定，無法再修改答案。</b>系統將立即計分，並展開本卷每一題的正解與詳解。'+
+      (t.blank?'<br><br>目前仍有 <b>'+t.blank+' 題未作答</b>，未作答一律以零分計算。':'')+
+      '</div><p style="margin-top:12px">若要修改，請選擇「返回修改」。</p>',
+    actions:[
+      {label:"返回修改",cls:"quiet",act:closeModal},
+      {label:"確定送出，計算成績",cls:"primary",act:doSubmit}
+    ]
+  });
+}
+function doSubmit(){
+  state.submitted=true; state.view="all"; save(); closeModal(); render();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function jumpTo(n){
+  const el=document.querySelector('[data-seq="'+n+'"]');
+  if(el){ el.scrollIntoView({behavior:"smooth",block:"center"}); const p=el.querySelector(".pick"); if(p) p.focus(); }
+}
+
+/* ---------- 對話框 ---------- */
+const modalHost=document.getElementById("modalHost");
+let lastFocus=null;
+function openModal(cfg){
+  lastFocus=document.activeElement;
+  modalHost.innerHTML="";
+  const scrim=document.createElement("div"); scrim.className="scrim";
+  const m=document.createElement("div");
+  m.className="modal"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-labelledby","mTitle");
+  m.innerHTML='<div class="m-head"><p class="m-step">'+cfg.step+'</p><h2 id="mTitle">'+cfg.title+'</h2></div>'+
+    '<div class="m-body">'+cfg.body+'</div><div class="m-foot"></div>';
+  const foot=m.querySelector(".m-foot");
+  cfg.actions.forEach(a=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="btn "+a.cls; b.textContent=a.label;
+    b.addEventListener("click",a.act);
+    foot.appendChild(b);
+  });
+  scrim.appendChild(m);
+  scrim.addEventListener("mousedown",e=>{ if(e.target===scrim) closeModal(); });
+  modalHost.appendChild(scrim);
+  document.body.style.overflow="hidden";
+  const btns=foot.querySelectorAll("button");
+  if(btns.length) btns[btns.length-1].focus();
+  document.addEventListener("keydown",onKey);
+}
+function onKey(e){ if(e.key==="Escape") closeModal(); }
+function closeModal(){
+  modalHost.innerHTML="";
+  document.body.style.overflow="";
+  document.removeEventListener("keydown",onKey);
+  if(lastFocus && lastFocus.focus){ try{lastFocus.focus();}catch(e){} }
+}
+
+/* ---------- 統計面板 ---------- */
+function renderDash(){
+  const qs=paperQs(), t=tally(qs), N=t.total;
+  const C=2*Math.PI*48;
+  const arc=document.getElementById("ringArc");
+  const big=document.getElementById("ringBig"), sub=document.getElementById("ringSub");
+  const tiles=document.getElementById("tiles"), barsTitle=document.getElementById("barsTitle");
+  const legend=document.getElementById("legend"), gradeLine=document.getElementById("gradeLine");
+  const usedUnits=[1,2,3,4].filter(u=>qs.some(q=>q.u===u));
+
+  if(!state.submitted){
+    const pct=N?Math.round(t.done/N*100):0;
+    arc.setAttribute("stroke-dasharray",(pct/100*C).toFixed(1)+" "+C.toFixed(1));
+    arc.setAttribute("stroke","var(--accent)");
+    big.textContent=pct+"%"; sub.textContent="作答進度";
+    tiles.innerHTML=
+      '<div class="tile"><div class="v">'+t.done+'<small>/'+N+'</small></div><div class="k">已作答</div></div>'+
+      '<div class="tile wa"><div class="v">'+t.blank+'</div><div class="k">未作答</div></div>'+
+      '<div class="tile"><div class="v">—</div><div class="k">成績（送出後顯示）</div></div>';
+    barsTitle.textContent="各單元作答進度";
+    legend.innerHTML='<span><b style="background:var(--accent)"></b>已作答</span><span><b style="background:var(--line-soft)"></b>未作答</span>';
+    gradeLine.hidden=true;
+  }else{
+    const pct=N?Math.round(t.ok/N*100):0;
+    arc.setAttribute("stroke-dasharray",(pct/100*C).toFixed(1)+" "+C.toFixed(1));
+    arc.setAttribute("stroke", pct>=80?"var(--ok)":pct>=60?"var(--accent)":"var(--no)");
+    big.textContent=pct+"分"; sub.textContent="百分制";
+    tiles.innerHTML=
+      '<div class="tile ok"><div class="v">'+t.ok+'<small>/'+N+'</small></div><div class="k">答對</div></div>'+
+      '<div class="tile no"><div class="v">'+t.no+'</div><div class="k">答錯</div></div>'+
+      '<div class="tile wa"><div class="v">'+t.blank+'</div><div class="k">未作答</div></div>';
+    barsTitle.textContent="各單元得分率";
+    legend.innerHTML='<span><b style="background:var(--ok)"></b>答對</span><span><b style="background:var(--no)"></b>答錯</span><span><b style="background:var(--line-soft)"></b>未作答</span>';
+    const lv = pct>=90?"優異":pct>=80?"良好":pct>=70?"尚可":pct>=60?"及格邊緣":"需要重讀";
+    gradeLine.hidden=false;
+    gradeLine.innerHTML='得分 <strong>'+t.ok+' / '+N+'</strong>　換算百分制 <strong>'+pct+' 分</strong>　評等 <strong>'+lv+'</strong>'+
+      (t.no?'　·　建議用「只看答錯」複習這 '+t.no+' 題':'');
+  }
+
+  const rows=document.getElementById("barRows"); rows.innerHTML="";
+  usedUnits.forEach(u=>{
+    const s=tally(qs.filter(q=>q.u===u));
+    let fill,pc;
+    if(!state.submitted){
+      fill='<i class="d" style="width:'+(s.done/s.total*100)+'%"></i>'; pc=s.done+"/"+s.total;
+    }else{
+      fill='<i class="c" style="width:'+(s.ok/s.total*100)+'%"></i><i class="w" style="width:'+(s.no/s.total*100)+'%"></i>';
+      pc=Math.round(s.ok/s.total*100)+"%";
+    }
+    const row=document.createElement("div"); row.className="brow";
+    row.innerHTML='<div class="nm" title="'+UNITS[u].name+'">'+UNITS[u].short+'</div><div class="track">'+fill+
+      '</div><div class="pc">'+pc+'</div>';
+    rows.appendChild(row);
+  });
+
+  document.getElementById("meterFill").style.width=(N?(state.submitted?t.ok/N:t.done/N)*100:0)+"%";
+  document.getElementById("meterLabel").textContent=state.submitted?"已送出 · 得分":"作答進度";
+  document.getElementById("meterNum").textContent=state.submitted?t.ok:t.done;
+  document.getElementById("meterDen").textContent=N;
+  document.getElementById("btnSubmit").hidden=state.submitted;
+  document.getElementById("btnTop").hidden=!state.submitted;
+}
+
+/* ---------- 題卡 ---------- */
+const listEl=document.getElementById("list");
+
+function paint(q,card){
+  const a=state.answers[q.id];
+  card.classList.toggle("marked", !state.submitted && a!==undefined);
+  card.classList.remove("g-right","g-wrong","g-blank");
+  const v=card.querySelector(".verdict");
+  if(!state.submitted){
+    if(a===undefined){ v.hidden=true; }
+    else{ v.hidden=false; v.className="verdict done"; v.textContent="已作答"; }
+  }else{
+    v.hidden=false;
+    if(a===undefined){ v.className="verdict blank"; v.textContent="未作答"; card.classList.add("g-blank"); }
+    else if(a===q.a){ v.className="verdict right"; v.textContent="答對 +1"; card.classList.add("g-right"); }
+    else{ v.className="verdict wrong"; v.textContent="答錯"; card.classList.add("g-wrong"); }
+  }
+  card.querySelectorAll(".pick").forEach(btn=>{
+    const val=btn.dataset.v==="1";
+    btn.disabled=state.submitted;
+    btn.setAttribute("aria-pressed",String(a===val));
+    let st="";
+    if(!state.submitted){ if(a===val) st="sel"; }
+    else{
+      if(a!==undefined && val===a) st=(a===q.a)?"chosen-right":"chosen-wrong";
+      else if(val===q.a) st="key";
+      else st="dim";
+    }
+    if(st) btn.dataset.state=st; else delete btn.dataset.state;
+  });
+  card.querySelector(".exp").hidden=!state.submitted;
+}
+
+function makeCard(q,seq){
+  const el=document.createElement("article");
+  el.className="q"; el.dataset.seq=seq;
+  el.innerHTML=
+    '<div class="qhead">'+
+      '<span class="qno">'+String(seq).padStart(2,"0")+'</span>'+
+      '<span class="qtag">'+UNITS[q.u].short+'</span>'+
+      '<span class="bankno">題庫 #'+q.id+'</span>'+
+      '<span class="verdict" hidden></span>'+
+    '</div>'+
+    '<p class="qtext"></p>'+
+    '<div class="picks">'+
+      '<button class="pick" type="button" data-v="1" aria-pressed="false">○ 對</button>'+
+      '<button class="pick" type="button" data-v="0" aria-pressed="false">✕ 錯</button>'+
+    '</div>'+
+    '<div class="exp" hidden><span class="key">正解 '+(q.a?"○ 對":"✕ 錯")+' · 詳解</span></div>';
+  el.querySelector(".qtext").textContent=q.q;
+  const body=document.createElement("span"); body.textContent=q.e;
+  el.querySelector(".exp").appendChild(body);
+  el.querySelectorAll(".pick").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      if(state.submitted) return;
+      const val=btn.dataset.v==="1";
+      if(state.answers[q.id]===val) delete state.answers[q.id];   // 再按一次取消作答
+      else state.answers[q.id]=val;
+      save(); paint(q,el); renderDash();
+      if(state.view==="blank") render();
+    });
+  });
+  paint(q,el);
+  return el;
+}
+
+function render(){
+  const hasPaper=!!(state.paper && state.paper.length);
+  document.getElementById("wrap").classList.toggle("nopaper",!hasPaper);
+  document.getElementById("setup").hidden=hasPaper;
+  document.getElementById("toolbar").hidden=!hasPaper;
+  document.getElementById("dash").hidden=!hasPaper;
+  document.getElementById("subbar").hidden=!hasPaper;
+
+  if(!hasPaper){ renderSetup(); listEl.innerHTML=""; return; }
+
+  const qs=paperQs();
+  const t=tally(qs);
+  document.getElementById("paperTag").innerHTML='本卷 <b>'+qs.length+'</b> 題 · '+
+    (state.scope?UNITS[state.scope].name:"全部單元")+(state.submitted?' · 已送出':'');
+
+  vWrong.hidden=!state.submitted;
+  if(!state.submitted && state.view==="wrong") state.view="all";
+  vAll.setAttribute("aria-pressed",String(state.view==="all"));
+  vBlank.setAttribute("aria-pressed",String(state.view==="blank"));
+  vWrong.setAttribute("aria-pressed",String(state.view==="wrong"));
+
+  renderDash();
+
+  const seqOf=new Map(qs.map((q,i)=>[q.id,i+1]));
+  let list=qs.slice();
+  if(state.view==="blank") list=list.filter(q=>state.answers[q.id]===undefined);
+  if(state.view==="wrong") list=list.filter(q=>{const a=state.answers[q.id];return a!==undefined&&a!==q.a;});
+
+  listEl.innerHTML="";
+  if(!list.length){
+    const d=document.createElement("div"); d.className="empty";
+    d.textContent = state.view==="blank" ? "本卷題目都已作答。"
+      : state.view==="wrong" ? "本卷沒有答錯的題目，恭喜。" : "沒有符合條件的題目。";
+    listEl.appendChild(d);
+    return;
+  }
+  const grouped = state.view==="all";
+  let lastUnit=null;
+  list.forEach(q=>{
+    if(grouped && q.u!==lastUnit){
+      lastUnit=q.u;
+      const h=document.createElement("div"); h.className="sechead";
+      h.innerHTML='<h2>'+UNITS[q.u].name+'</h2><span class="dt">'+UNITS[q.u].date+' · 本卷 '+
+        qs.filter(x=>x.u===q.u).length+' 題</span>';
+      listEl.appendChild(h);
+    }
+    listEl.appendChild(makeCard(q, seqOf.get(q.id)));
+  });
+}
+
+render();
+</script>
